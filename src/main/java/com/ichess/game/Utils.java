@@ -13,6 +13,7 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.Random;
+import java.util.TimeZone;
 import java.util.logging.Level;
 
 /**
@@ -303,10 +304,11 @@ public class Utils {
     }
 
     /**
-     * Get current calendar
+     * Get current calendar in UTC.
+     * Must match JDBC serverTimezone=UTC and MySQL DATE calendar days.
      */
     public static Calendar nowCalendar() {
-        return Calendar.getInstance();
+        return Calendar.getInstance(TimeZone.getTimeZone("UTC"));
     }
 
     /**
