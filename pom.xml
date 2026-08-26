@@ -7,7 +7,7 @@
 
     <groupId>com.ichess</groupId>
     <artifactId>ichess-game</artifactId>
-    <version>1.0.1</version>
+    <version>1.0.2</version>
     <packaging>jar</packaging>
 
     <name>iChess Game Library</name>
@@ -48,6 +48,7 @@
                 <configuration>
                     <includes>
                         <include>**/game/tests/GameTest.java</include>
+                        <include>**/game/tests/PGNAnnotatedTest.java</include>
                     </includes>
                 </configuration>
             </plugin>

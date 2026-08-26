@@ -361,9 +361,10 @@ public class PGN {
 		temp = temp.replaceAll("\\$6", "?!");
 
 
-		// replace comments "{}[]()" with spaces to isloate comments
-		List<String> openBrs = Arrays.asList( "{" , "(", "[" );
-		List<String> closeBrs = Arrays.asList( "}" , ")", "]" );
+		// Isolate PGN comment/variation brackets. Only {} and () — not [] —
+		// so bracketed text inside comments does not break tokenization.
+		List<String> openBrs = Arrays.asList( "{" , "(" );
+		List<String> closeBrs = Arrays.asList( "}" , ")" );
 
 		for (String openBr : openBrs) {
 			temp = temp.replace(openBr, " " + openBr + " ");
@@ -457,9 +458,16 @@ public class PGN {
         }
         */
 
+		// PGN standard: {} = comments, () = variations. Do not treat [] as
+		// comment delimiters (tags were already stripped; [] inside comments
+		// must not reset the comment stack).
+		List<String> openBrsMoves = Arrays.asList("{", "(");
+		List<String> closeBrsMoves = Arrays.asList("}", ")");
+
 		Stack<String> brackets = new Stack<String>();
 		boolean inComment = false;
 		String comment = "";
+		String pendingGameComment = "";
 
 		while (st.hasMoreTokens()) {
 			String tok = st.nextToken();
@@ -474,20 +482,24 @@ public class PGN {
 
 			Log.debug("parse token " + tok);
 
-			if (openBrs.contains(tok))
+			if (openBrsMoves.contains(tok))
 			{
-				// start comment
 				brackets.push(tok);
 				inComment = true;
-				comment = "";
+				// Do not reset comment on nested open — variations inside
+				// comments (and vice versa) must keep accumulated text.
 				continue;
 			}
 
-			if (closeBrs.contains(tok))
+			if (closeBrsMoves.contains(tok))
 			{
+				if (brackets.isEmpty()) {
+					Log.warning("brackets error (extra close). terminating");
+					break;
+				}
 				String lastBr = brackets.pop();
 				// validate correct bracket
-				if ((closeBrs.indexOf(tok) != openBrs.indexOf(lastBr)))
+				if ((closeBrsMoves.indexOf(tok) != openBrsMoves.indexOf(lastBr)))
 				{
 					Log.warning("brackets error. terminating");
 					break;
@@ -495,14 +507,24 @@ public class PGN {
 				if (brackets.isEmpty())
 				{
 					inComment = false;
-					Move lastMove = game.getLastMove();
-					if (lastMove != null)
+					if (! Utils.isEmptyString(comment))
 					{
-						if (! Utils.isEmptyString(comment))
+						String wrapped = "( " + Utils.encodeInRLE(comment.trim()) + " )";
+						Move lastMove = game.getLastMove();
+						if (lastMove != null)
 						{
-							comment = "( " + Utils.encodeInRLE(comment) + " )";
-							lastMove.appendComment(comment);
+							lastMove.appendComment(wrapped);
 						}
+						else
+						{
+							// Game-level / pre-move annotation — attach to first move later
+							if (Utils.isEmptyString(pendingGameComment)) {
+								pendingGameComment = wrapped;
+							} else {
+								pendingGameComment += wrapped;
+							}
+						}
+						comment = "";
 					}
 				}
 				continue;
@@ -539,6 +561,14 @@ public class PGN {
 				winner = Common.COLOR_ILLEGAL;
 				pgnEnded = false;
 				continue;
+			}
+
+			// Normalize numeric castling (common in annotated PGNs) before the
+			// "must start with a letter" filter — otherwise "0-0" is skipped as
+			// a move number and the side-to-move desyncs ("עמדה לא חוקית").
+			String castling = normalizeCastlingToken(tok);
+			if (castling != null) {
+				tok = castling;
 			}
 
             if (Character.isDigit(tok.charAt(0)))
@@ -579,6 +609,14 @@ public class PGN {
 				Log.warning("failed to parse PGN : " + _pgnString);
 				return Common.RC_GENERAL_FAILURE;
 			}
+
+			if (! Utils.isEmptyString(pendingGameComment)) {
+				Move first = currentGame.getLastMove();
+				if (first != null) {
+					first.appendComment(pendingGameComment);
+					pendingGameComment = "";
+				}
+			}
 		}
 
         Log.debug("game ended " + currentGame.isEnded() + " PGN ended " + pgnEnded + " end str " + currentGame.getEndString());
@@ -609,6 +647,26 @@ public class PGN {
 			return null;
 		}
 		return game;
+	}
+
+	/**
+	 * Annotated PGNs often write castling with zeros ({@code 0-0}, {@code 0-0-0})
+	 * instead of the letter O. Returns normalized {@code O-O}/{@code O-O-O}
+	 * (suffixes like {@code +}/{@code !} preserved), or null if not castling.
+	 */
+	public static String normalizeCastlingToken(String tok) {
+		if (Utils.isEmptyString(tok)) {
+			return null;
+		}
+		// Strip annotation / check glyphs for the shape check, then map zeros → O
+		String core = tok.replaceAll("[\\?!\\+#\\.\\$]+$", "");
+		if ("0-0-0".equals(core) || "o-o-o".equalsIgnoreCase(core)) {
+			return "O-O-O" + tok.substring(core.length());
+		}
+		if ("0-0".equals(core) || "o-o".equalsIgnoreCase(core)) {
+			return "O-O" + tok.substring(core.length());
+		}
+		return null;
 	}
 
 	/**

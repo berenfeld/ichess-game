@@ -257,9 +257,13 @@ public class Notation {
 
 			str = str.substring(0, str.length() - 2);
 		}
+		// Annotated PGNs often use zeros for castling (0-0 / 0-0-0)
+		if ("0-0".equals(str) || "0-0-0".equals(str)) {
+			str = str.replace('0', 'O');
+		}
 		String moveUpper = str.toUpperCase();
 
-		// special case 0-0, 0-0-0
+		// special case O-O, O-O-O (also accepts o-o via toUpperCase)
 		if ("O-O".equals(moveUpper)) {
 			// small castle
 			if (color == Common.COLOR_WHITE) {
