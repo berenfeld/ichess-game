@@ -420,4 +420,27 @@ public class GameTest {
         Piece queen = game.findPiece(Common.PIECE_TYPE_QUEEN, Common.COLOR_WHITE);
         assertTrue(queen.isPromoted());
     }
+
+    @Test
+    public void testUnlimitedGameIsNeverOutOfTime() {
+        Game game = new Game();
+        game.setTimeLimitForGame(0);
+        game.setIncrPerMove(0);
+        game.setTimeLimitForMove(0);
+        game.startClock(Common.COLOR_WHITE);
+        assertFalse(game.isTimed());
+        assertFalse(game.isOutOfTime(Common.COLOR_WHITE));
+        assertFalse(game.isOutOfTime(Common.COLOR_BLACK));
+    }
+
+    @Test
+    public void testPerMoveLimitMakesGameTimed() {
+        Game game = new Game();
+        game.setTimeLimitForGame(0);
+        game.setIncrPerMove(0);
+        game.setTimeLimitForMove(120);
+        game.startClock(Common.COLOR_WHITE);
+        assertTrue(game.isTimed());
+        assertFalse(game.isOutOfTime(Common.COLOR_WHITE));
+    }
 }
