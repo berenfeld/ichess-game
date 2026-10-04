@@ -309,6 +309,23 @@ public class GameTest {
     }
 
     @Test
+    public void testHoldingsFenRoundTrip() {
+        String board = "8/5B2/6p1/5N1k/6p1/6R1/4K3/8";
+        String[] hands = { "[-]", "[Np]", "[PNBRQpnbrq]" };
+        int[] kinds = { Common.GAME_KIND_CRAZY_HOUSE, Common.GAME_KIND_BUG_HOUSE };
+        for (int kind : kinds) {
+            for (String hand : hands) {
+                String fen = board + hand + " w - - 0 1";
+                Game game = FEN.loadGame(fen, false, kind);
+                assertNotNull(fen, game);
+                assertEquals(fen, FEN.getFENString(game));
+                assertNotNull(game.getCurrentMoveInfo());
+                assertEquals(fen, FEN.getFENString(game));
+            }
+        }
+    }
+
+    @Test
     public void testBugHouse() {
         Game game1 = new Game(Common.GAME_KIND_BUG_HOUSE);
         Game game2 = new Game(Common.GAME_KIND_BUG_HOUSE);

@@ -132,28 +132,8 @@ public class Game {
             {
                 return _otherGame.getCapturedPieces(color);
             }
-            if (color == Common.COLOR_WHITE)
-            {
-                return new ArrayList<Piece>(
-                    Arrays.asList(
-                            Piece.create(Common.PIECE_TYPE_PAWN, Common.COLOR_WHITE),
-                            Piece.create(Common.PIECE_TYPE_KNIGHT, Common.COLOR_WHITE),
-                            Piece.create(Common.PIECE_TYPE_BISHOP, Common.COLOR_WHITE),
-                            Piece.create(Common.PIECE_TYPE_ROOK, Common.COLOR_WHITE),
-                            Piece.create(Common.PIECE_TYPE_QUEEN, Common.COLOR_WHITE)
-                    )
-                );
-
-            }
-            return new ArrayList<Piece>(
-                Arrays.asList(
-                        Piece.create(Common.PIECE_TYPE_PAWN, Common.COLOR_BLACK),
-                        Piece.create(Common.PIECE_TYPE_KNIGHT, Common.COLOR_BLACK),
-                        Piece.create(Common.PIECE_TYPE_BISHOP, Common.COLOR_BLACK),
-                        Piece.create(Common.PIECE_TYPE_ROOK, Common.COLOR_BLACK),
-                        Piece.create(Common.PIECE_TYPE_QUEEN, Common.COLOR_BLACK)
-                )
-            );
+            // A single board has no partner. The hand is the one stored from the FEN.
+            return getCapturedPieces(color);
         }
         // not bughouse/crazyhouse. no droppable pieces
         return new ArrayList<Piece>();
@@ -199,13 +179,14 @@ public class Game {
         }
         else if (isBugHouse())
         {
-            Game otherGame = getOtherGame();
-            if (otherGame != null) {
-                if (color == Common.COLOR_WHITE) {
-                    otherGame._whiteCaptured = pieces;
-                } else {
-                    otherGame._blackCaptured = pieces;
-                }
+            Game handGame = getOtherGame();
+            if (handGame == null) {
+                handGame = this;
+            }
+            if (color == Common.COLOR_WHITE) {
+                handGame._whiteCaptured = pieces;
+            } else {
+                handGame._blackCaptured = pieces;
             }
         }
     }
